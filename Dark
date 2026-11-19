@@ -1,0 +1,69 @@
+-- Services
+local Players = game:GetService("Players")
+local UserInputService =GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local humanoid = character:WaitForChild("Humanoid")
+
+-- Flight settings
+local FLY_SPEED = 50
+local isFlying = false
+local bv, bg
+
+local function toggleFlight()
+	isFlying = not isFlying
+	
+	if isFlying then
+		humanoid.PlatformStand = true
+		
+		-- Create BodyVelocity and BodyGyro for smooth movement
+		bv = Instance.new("BodyVelocity")
+		bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+		bv.Velocity = Vector3.zero
+		bv.Parent = humanoidRootPart
+		
+		bg = Instance.new("BodyGyro")
+		bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+		bg.CFrame = humanoidRootPart.CFrame
+		bg.Parent = humanoidRootPart
+	else
+		humanoid.PlatformStand = false
+		if bv then bv:Destroy() end
+		if bg then bg:Destroy() end
+	end
+end
+
+-- Controls (Press 'F' to toggle)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.KeyCode == Enum.KeyCode.F then
+		toggleFlight()
+	end
+end)
+
+-- Flight loop
+RunService.RenderStepped:Connect(function()
+	if not isFlying or not humanoidRootPart then return end
+	
+	local camera = workspace.CurrentCamera
+	local moveDirection = Vector3.zero
+	
+	if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+		moveDirection += camera.CFrame.LookVector
+	end
+	if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+		moveDirection -= camera.CFrame.LookVector
+	end
+	if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+		moveDirection -= camera.CFrame.RightVector
+	end
+	if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+		moveDirection += camera.CFrame.RightVector
+	end
+	
+	bv.Velocity = moveDirection * FLY_SPEED
+	bg.CFrame = camera.CFrame
+end)
